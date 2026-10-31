@@ -343,6 +343,12 @@ local function SendGroup(...)
 	return true
 end
 
+-- A whisper's sender or target without a "-Realm" part (character names hold no hyphen),
+-- to compare with UnitName and the names the addon keeps.
+local function ShortName(name)
+	return name and name:match("^([^%-]+)") or name
+end
+
 local function Whisper(name, message)
 	NoteQuiet(message)
 	SendChatMessage(message, "WHISPER", nil, name)
@@ -1259,9 +1265,15 @@ local QUEST_WAIT = 6   -- seconds without a line before giving up
 local questFrame
 local questAsk = {}    -- name, lastLine (GetTime), done
 
+-- Only the list's own lines: its headers, lines that start with a quest link, the total. A
+-- "Can't take [quest]: ..." whisper carries a link too, but not at the start.
 local function IsQuestAnswer(message)
-	return message:find("^%-%-%- .* %-%-%-$") ~= nil or message:find("|Hquest:", 1, true) ~= nil
+	return message:find("^%-%-%- .* %-%-%-$") ~= nil or message:find("^|c%x%x%x%x%x%x%x%x|Hquest:") ~= nil
 		or message:find("^Total: %d+ / %d+") ~= nil
+end
+
+local function IsQuestListStart(message)
+	return message:find("^%-%-%- .* %-%-%-$") ~= nil
 end
 
 local function AwaitsQuests(sender)
@@ -1325,15 +1337,30 @@ local function BuildQuests()
 	questFrame:Hide()
 end
 
-ShowQuests = function(name)
-	if not name or name == "" then return end
-	questAsk = { name = name, lastLine = GetTime() }
+local function OpenQuestWindow(name)
 	questFrame.title:SetText(string.format(L.Q_TITLE, name))
 	questFrame.help:SetText(L.Q_HELP)
 	questFrame.log:Clear()
-	questFrame.log:AddMessage(string.format(L.Q_WAIT, name), 0.6, 0.6, 0.6)
 	questFrame:Show()
+end
+
+-- Asked from the addon (button, menu, /sbl quests): the question and the answer stay out of the chat.
+ShowQuests = function(name)
+	name = ShortName(name)
+	if not name or name == "" then return end
+	questAsk = { name = name, lastLine = GetTime() }
+	OpenQuestWindow(name)
+	questFrame.log:AddMessage(string.format(L.Q_WAIT, name), 0.6, 0.6, 0.6)
 	SendChatMessage("quests all", "WHISPER", nil, name)
+end
+
+-- A list the player asked for by hand ("quests all" typed in chat, to one bot or the group): shown
+-- in the window too, and left in the chat. One bot at a time: another's list stays in the chat.
+local function CaptureTypedList(sender)
+	if questAsk.name and questAsk.name ~= sender and AwaitsQuests(questAsk.name) then return false end
+	questAsk = { name = sender, lastLine = GetTime(), typed = true }
+	OpenQuestWindow(sender)
+	return true
 end
 
 local QUEST_HEADERS = { ["--- Incompleted quests ---"] = "Q_INCOMPLETE", ["--- Completed quests ---"] = "Q_COMPLETE" }
@@ -1368,16 +1395,32 @@ local function TickQuests()
 end
 
 ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", function(_, _, message, sender)
-	if questAsk.name and questAsk.name == sender and IsQuestAnswer(message)
+	if questAsk.name and not questAsk.typed and questAsk.name == ShortName(sender) and IsQuestAnswer(message)
 		and GetTime() - (questAsk.lastLine or 0) < QUEST_WAIT + 1 then
 		return true
 	end
 end)
 ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER_INFORM", function(_, _, message, target)
-	if message == "quests all" and questAsk.name == target and GetTime() - (questAsk.lastLine or 0) < 2 then
+	if message == "quests all" and not questAsk.typed and questAsk.name == ShortName(target)
+		and GetTime() - (questAsk.lastLine or 0) < 2 then
 		return true
 	end
 end)
+
+local function OnQuestWhisper(message, sender)
+	if not IsQuestAnswer(message) then return false end
+	if AwaitsQuests(sender) then
+		OnQuestLine(message)
+		return true
+	end
+	-- Nothing awaited from this bot: a list that starts now was typed by hand (a finished one
+	-- that starts again, too).
+	if IsQuestListStart(message) and CaptureTypedList(sender) then
+		OnQuestLine(message)
+		return true
+	end
+	return false
+end
 
 -- ---------------------------------------------------------------------------
 -- Chat: bots' strategy answers
@@ -1465,10 +1508,9 @@ events:SetScript("OnEvent", function(self, event, arg1, arg2)
 			TickQuests()
 		end)
 	elseif event == "CHAT_MSG_WHISPER" then
-		if arg1 and arg2 and AwaitsQuests(arg2) and IsQuestAnswer(arg1) then
-			OnQuestLine(arg1)
-		elseif arg1 and arg2 and IsStrategyAnswer(arg1) then
-			OnStrategies(arg1, arg2)
+		local sender = ShortName(arg2)
+		if arg1 and sender and not OnQuestWhisper(arg1, sender) and IsStrategyAnswer(arg1) then
+			OnStrategies(arg1, sender)
 		end
 	elseif event == "CHAT_MSG_SYSTEM" then
 		if arg1 then OnSystem(arg1) end

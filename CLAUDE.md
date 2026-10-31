@@ -37,7 +37,10 @@ version"). `Brytenwally/mod-playerbots` is a 3.3.5 reference only.
 - `quests all` answers `--- Incompleted quests ---`, one line per quest (quest
   link, then ` - 3/8 objective, ...`), `--- Completed quests ---`, ...,
   `--- Summary ---`, `Total: n / 25 (...)` (the end marker). The Quests panel
-  hides and shows those lines (`IsQuestAnswer`, `OnQuestLine`).
+  hides and shows those lines (`IsQuestAnswer`, `OnQuestLine`); a list typed by
+  hand opens the panel too and stays in chat (`CaptureTypedList`). Quest lines
+  start with the link: `Can't take [quest]` whispers are not list lines.
+- Compare whisper senders/targets with `ShortName` (no `-Realm` part).
 - My alts' logged-in state: `.playerbots list`, the add/remove answers
   (`'X' is not an active bot.`, `Could not add bot 'X': That character is
   already an active bot.` correct a stale state), or a group member that is
