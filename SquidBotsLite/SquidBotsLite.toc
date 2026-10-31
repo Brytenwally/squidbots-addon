@@ -1,13 +1,11 @@
-## Interface: 30300
+## Interface: 50400
 ## Title: SquidBots Lite
-## Notes: A thin bar of bot orders, role badges on the party frames, lfg bot offers as toasts - CoA Bots
-## Notes-frFR: Une barre fine d'ordres aux bots, rôles sur les cadres de groupe, offres lfg bot en notifications - CoA Bots
-## Version: 2.8.2
-## Author: CoA Bots team
+## Notes: A thin bar of bot orders and role badges on the party frames - SkyFire-playerbots (5.4.8)
+## Notes-frFR: Une barre fine d'ordres aux bots et rôles sur les cadres de groupe - SkyFire-playerbots (5.4.8)
+## Version: 3.0.0
+## Author: CoA Bots team, SkyFire port by Brytenwally
 ## X-License: GPL-2.0
-## X-Website: https://github.com/Zyth45/mod-playerbots
+## X-Website: https://github.com/Brytenwally/squidbots-addon
 ## SavedVariables: SquidBotsLiteDB
 ## SavedVariablesPerCharacter: SquidBotsLiteCharDB
 SquidBotsLite.lua
-Manager.lua
-Missions.lua
