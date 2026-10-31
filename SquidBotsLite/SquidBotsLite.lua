@@ -51,11 +51,15 @@ local STRINGS = {
 		TIP_ALT_ADD = "Logs it in as a bot and invites it to your group.", TIP_ALT_REMOVE = "Logs it out of the game.",
 		TIP_ALT_SUMMON = "Brings it to you: an alt logs in where it logged out.",
 		ALTS_FORGET = "Right click: forget this character.", ALTS_FORGOT = "%s is no longer listed in My alts.",
+		ALTS_QUESTS = "Quests", TIP_ALT_QUESTS = "The quests it is on, with their objectives (quests all).",
+		M_QUESTS = "Its quests", Q_TITLE = "Quests of %s", Q_WAIT = "Asking %s...", Q_NO_REPLY = "No answer from %s.",
+		Q_INCOMPLETE = "In progress", Q_COMPLETE = "Ready to turn in", Q_REFRESH = "Ask again",
+		Q_HELP = "Hover a quest for its tooltip, shift-click to link it in chat.",
 		ROLES_ON = "Automatic roles on: a bot without a party role is asked \"co ?\" once, answer hidden.",
 		ROLES_OFF = "Automatic roles off.",
 		RAIDFRAMES_ON = "Role icons and bot menus on the raid-style frames: on.",
 		RAIDFRAMES_OFF = "Role icons and bot menus on the raid-style frames: off.",
-		HELP = "SquidBots Lite: /sbl (show/hide), /sbl show, /sbl hide, /sbl scale 0.5-2, /sbl lang fr|en, /sbl alts, /sbl roles on|off, /sbl raidframes on|off, /sbl gm, /sbl reset. Key bindings: Esc > Key Bindings > SquidBots Lite.",
+		HELP = "SquidBots Lite: /sbl (show/hide), /sbl show, /sbl hide, /sbl scale 0.5-2, /sbl lang fr|en, /sbl alts, /sbl quests <name>, /sbl roles on|off, /sbl raidframes on|off, /sbl gm, /sbl reset. Key bindings: Esc > Key Bindings > SquidBots Lite.",
 		SCALE_SET = "SquidBots Lite bar size: %s (this character).", SCALE_BAD = "Bar size: a number from 0.5 to 2, for example /sbl scale 1.2",
 		LANG_SET = "SquidBots Lite language: English.",
 	},
@@ -105,11 +109,15 @@ local STRINGS = {
 		TIP_ALT_ADD = "Le connecte en bot et l'invite dans votre groupe.", TIP_ALT_REMOVE = "Le déconnecte du jeu.",
 		TIP_ALT_SUMMON = "L'amène à vous : un alt se connecte là où il s'est déconnecté.",
 		ALTS_FORGET = "Clic droit : oublier ce personnage.", ALTS_FORGOT = "%s n'est plus listé dans Mes alts.",
+		ALTS_QUESTS = "Quêtes", TIP_ALT_QUESTS = "Les quêtes qu'il a en cours, avec leurs objectifs (quests all).",
+		M_QUESTS = "Ses quêtes", Q_TITLE = "Quêtes de %s", Q_WAIT = "Question à %s...", Q_NO_REPLY = "Pas de réponse de %s.",
+		Q_INCOMPLETE = "En cours", Q_COMPLETE = "À rendre", Q_REFRESH = "Redemander",
+		Q_HELP = "Survolez une quête pour son infobulle, Maj-clic pour la lier dans le chat.",
 		ROLES_ON = "Rôles automatiques activés : un bot sans rôle de groupe reçoit \"co ?\" une fois, réponse masquée.",
 		ROLES_OFF = "Rôles automatiques désactivés.",
 		RAIDFRAMES_ON = "Icônes de rôle et menus des bots sur les cadres de raid : activés.",
 		RAIDFRAMES_OFF = "Icônes de rôle et menus des bots sur les cadres de raid : désactivés.",
-		HELP = "SquidBots Lite : /sbl (afficher/cacher), /sbl show, /sbl hide, /sbl scale 0.5-2, /sbl lang fr|en, /sbl alts, /sbl roles on|off, /sbl raidframes on|off, /sbl gm, /sbl reset. Raccourcis : Échap > Raccourcis > SquidBots Lite.",
+		HELP = "SquidBots Lite : /sbl (afficher/cacher), /sbl show, /sbl hide, /sbl scale 0.5-2, /sbl lang fr|en, /sbl alts, /sbl quests <nom>, /sbl roles on|off, /sbl raidframes on|off, /sbl gm, /sbl reset. Raccourcis : Échap > Raccourcis > SquidBots Lite.",
 		SCALE_SET = "Taille de la barre SquidBots Lite : %s (ce personnage).", SCALE_BAD = "Taille de la barre : un nombre de 0,5 à 2, par exemple /sbl scale 1.2",
 		LANG_SET = "Langue de SquidBots Lite : français.",
 	},
@@ -378,7 +386,7 @@ local function ShowMenu(items)
 	menuWatch:Show()
 end
 
-local ShowAlts
+local ShowAlts, ShowQuests
 
 -- Set by the bar and by the menus alike, so the lit button always matches the last order sent.
 local Highlight
@@ -459,6 +467,7 @@ local function BotMenu(name)
 		{ text = L.M_GEAR, notCheckable = true, func = function() Whisper(name, "autogear") end },
 		{ text = L.M_SPELLS, notCheckable = true, func = function() Whisper(name, "maintenance") end },
 		{ text = L.M_SELL, notCheckable = true, func = function() Whisper(name, "sell") end },
+		{ text = L.M_QUESTS, notCheckable = true, func = function() ShowQuests(name) end },
 	}
 	if UnitIsGroupLeader("player") then
 		table.insert(items, { text = L.M_MAKE_LEADER, notCheckable = true, func = function() PromoteToLeader(name) end })
@@ -901,7 +910,7 @@ local function RefreshAlts()
 			row.dot:SetTexture(alt.online and "Interface\\FriendsFrame\\StatusIcon-Online" or "Interface\\FriendsFrame\\StatusIcon-Offline")
 			row:SetBackdropColor(alt.online and 0.10 or 0.07, alt.online and 0.10 or 0.07, alt.online and 0.12 or 0.08, 0.95)
 			ui.SetIcon(row.toggle, alt.online and "Interface\\Icons\\Spell_ChargeNegative" or "Interface\\Icons\\Spell_ChargePositive", true)
-			if alt.online then row.summon:Show() else row.summon:Hide() end
+			if alt.online then row.summon:Show() row.quests:Show() else row.summon:Hide() row.quests:Hide() end
 			row:Show()
 		else
 			row:Hide()
@@ -1107,6 +1116,12 @@ local function BuildAlts()
 			if alt then Whisper(alt.name, "summon") end
 		end)
 		row.summon:SetPoint("RIGHT", row.toggle, "LEFT", -6, 0)
+		row.quests = ui.IconButton(row, 26, "Interface\\Icons\\INV_Misc_Book_08",
+			function() return L.ALTS_QUESTS, L.TIP_ALT_QUESTS end, function(self)
+			local alt = self:GetParent().alt
+			if alt then ShowQuests(alt.name) end
+		end)
+		row.quests:SetPoint("RIGHT", row.summon, "LEFT", -6, 0)
 		row:EnableMouse(true)
 		row:SetScript("OnEnter", function(self)
 			local alt = self.alt
@@ -1224,6 +1239,136 @@ ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(_, _, message)
 end)
 
 -- ---------------------------------------------------------------------------
+-- Quests: a bot's quest log ("quests all"), whispered back line by line
+-- ---------------------------------------------------------------------------
+-- The answer: "--- Incompleted quests ---", a line per quest (a quest link, objectives after " - "),
+-- "--- Completed quests ---", the same, "--- Summary ---", "Total: n / 25 (...)". Kept out of the chat
+-- and shown in the panel while it is awaited; "Total:" ends it.
+local QUEST_WAIT = 6   -- seconds without a line before giving up
+local questFrame
+local questAsk = {}    -- name, lastLine (GetTime), done
+
+local function IsQuestAnswer(message)
+	return message:find("^%-%-%- .* %-%-%-$") ~= nil or message:find("|Hquest:", 1, true) ~= nil
+		or message:find("^Total: %d+ / %d+") ~= nil
+end
+
+local function AwaitsQuests(sender)
+	return questAsk.name == sender and not questAsk.done and GetTime() - (questAsk.lastLine or 0) < QUEST_WAIT
+end
+
+local function BuildQuests()
+	questFrame = CreateFrame("Frame", "SquidBotsLiteQuests", UIParent)
+	questFrame:SetWidth(460)
+	questFrame:SetHeight(380)
+	questFrame:SetPoint("CENTER", 40, 0)
+	questFrame:SetBackdrop(PANEL_BACKDROP)
+	questFrame:SetBackdropColor(0.04, 0.04, 0.05, 0.96)
+	questFrame:SetFrameStrata("DIALOG")
+	questFrame:SetToplevel(true)
+	questFrame:SetMovable(true)
+	questFrame:EnableMouse(true)
+	questFrame:SetClampedToScreen(true)
+	questFrame:RegisterForDrag("LeftButton")
+	questFrame:SetScript("OnDragStart", questFrame.StartMoving)
+	questFrame:SetScript("OnDragStop", questFrame.StopMovingOrSizing)
+	table.insert(UISpecialFrames, "SquidBotsLiteQuests")
+	questFrame.title = questFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	questFrame.title:SetPoint("TOP", 0, -14)
+	local close = CreateFrame("Button", nil, questFrame, "UIPanelCloseButton")
+	close:SetPoint("TOPRIGHT", -4, -4)
+	questFrame.refresh = ui.IconButton(questFrame, 22, "Interface\\Buttons\\UI-RefreshButton",
+		function() return L.Q_REFRESH end, function() if questAsk.name then ShowQuests(questAsk.name) end end)
+	questFrame.refresh.icon:SetTexCoord(0, 1, 0, 1)
+	questFrame.refresh:SetPoint("TOPLEFT", 18, -12)
+	ui.Rule(questFrame, -40)
+	-- A message frame: quest links in it show their tooltip and can be shift-clicked into the chat.
+	local log = CreateFrame("ScrollingMessageFrame", nil, questFrame)
+	log:SetPoint("TOPLEFT", 20, -48)
+	log:SetPoint("BOTTOMRIGHT", -20, 40)
+	log:SetFontObject(GameFontHighlightSmall)
+	log:SetJustifyH("LEFT")
+	log:SetFading(false)
+	log:SetMaxLines(200)
+	log:SetInsertMode("BOTTOM")
+	if log.SetIndentedWordWrap then log:SetIndentedWordWrap(true) end
+	if log.SetHyperlinksEnabled then log:SetHyperlinksEnabled(true) end
+	log:EnableMouseWheel(true)
+	log:SetScript("OnMouseWheel", function(self, delta)
+		if delta > 0 then self:ScrollUp() else self:ScrollDown() end
+	end)
+	log:SetScript("OnHyperlinkEnter", function(self, link)
+		GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+		GameTooltip:SetHyperlink(link)
+		GameTooltip:Show()
+	end)
+	log:SetScript("OnHyperlinkLeave", function() GameTooltip:Hide() end)
+	log:SetScript("OnHyperlinkClick", function(_, link, text, button)
+		ChatFrame_OnHyperlinkShow(DEFAULT_CHAT_FRAME, link, text, button)
+	end)
+	questFrame.log = log
+	questFrame.help = questFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+	questFrame.help:SetPoint("BOTTOMLEFT", 20, 16)
+	questFrame.help:SetWidth(420)
+	questFrame.help:SetJustifyH("LEFT")
+	questFrame:Hide()
+end
+
+ShowQuests = function(name)
+	if not name or name == "" then return end
+	questAsk = { name = name, lastLine = GetTime() }
+	questFrame.title:SetText(string.format(L.Q_TITLE, name))
+	questFrame.help:SetText(L.Q_HELP)
+	questFrame.log:Clear()
+	questFrame.log:AddMessage(string.format(L.Q_WAIT, name), 0.6, 0.6, 0.6)
+	questFrame:Show()
+	SendChatMessage("quests all", "WHISPER", nil, name)
+end
+
+local QUEST_HEADERS = { ["--- Incompleted quests ---"] = "Q_INCOMPLETE", ["--- Completed quests ---"] = "Q_COMPLETE" }
+
+local function OnQuestLine(message)
+	local log = questFrame.log
+	if not questAsk.started then
+		questAsk.started = true
+		log:Clear()
+	end
+	questAsk.lastLine = GetTime()
+	local header = QUEST_HEADERS[message]
+	if header then
+		log:AddMessage(" ")
+		log:AddMessage(L[header], 1, 0.82, 0)
+	elseif message == "--- Summary ---" then
+		log:AddMessage(" ")
+	elseif message:find("^Total: ") then
+		log:AddMessage(message, 0.6, 0.6, 0.6)
+		questAsk.done = true
+	else
+		log:AddMessage(message, 1, 1, 1)
+	end
+end
+
+local function TickQuests()
+	if questAsk.name and not questAsk.done and not questAsk.started and GetTime() - questAsk.lastLine >= QUEST_WAIT then
+		questAsk.done = true
+		questFrame.log:Clear()
+		questFrame.log:AddMessage(string.format(L.Q_NO_REPLY, questAsk.name), 1, 0.5, 0.3)
+	end
+end
+
+ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", function(_, _, message, sender)
+	if questAsk.name and questAsk.name == sender and IsQuestAnswer(message)
+		and GetTime() - (questAsk.lastLine or 0) < QUEST_WAIT + 1 then
+		return true
+	end
+end)
+ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER_INFORM", function(_, _, message, target)
+	if message == "quests all" and questAsk.name == target and GetTime() - (questAsk.lastLine or 0) < 2 then
+		return true
+	end
+end)
+
+-- ---------------------------------------------------------------------------
 -- Chat: bots' strategy answers
 -- ---------------------------------------------------------------------------
 -- A bot answers every co / nc order with its strategies ("co: +passive, -grind, +tank, +tank assist, ..."). The
@@ -1290,6 +1435,7 @@ events:SetScript("OnEvent", function(self, event, arg1, arg2)
 		BuildBar()
 		BuildOverlays()
 		BuildAlts()
+		BuildQuests()
 		RefreshTexts()
 		for _, e in ipairs({ "CHAT_MSG_WHISPER", "CHAT_MSG_SYSTEM", "GROUP_ROSTER_UPDATE", "PLAYER_LEVEL_UP",
 			"PLAYER_SPECIALIZATION_CHANGED" }) do
@@ -1305,9 +1451,14 @@ events:SetScript("OnEvent", function(self, event, arg1, arg2)
 			RefreshRelease()
 			ProbeRoles()
 			TickAlts()
+			TickQuests()
 		end)
 	elseif event == "CHAT_MSG_WHISPER" then
-		if arg1 and arg2 and IsStrategyAnswer(arg1) then OnStrategies(arg1, arg2) end
+		if arg1 and arg2 and AwaitsQuests(arg2) and IsQuestAnswer(arg1) then
+			OnQuestLine(arg1)
+		elseif arg1 and arg2 and IsStrategyAnswer(arg1) then
+			OnStrategies(arg1, arg2)
+		end
 	elseif event == "CHAT_MSG_SYSTEM" then
 		if arg1 then OnSystem(arg1) end
 	elseif event == "GROUP_ROSTER_UPDATE" then
@@ -1337,6 +1488,8 @@ SlashCmdList["SQUIDBOTSLITE"] = function(message)
 		Print(L.LANG_SET)
 	elseif command == "alts" then
 		ShowAlts()
+	elseif command == "quests" then
+		ShowQuests(rest ~= "" and rest or UnitName("target"))
 	elseif command == "raidframes" then
 		SquidBotsLiteDB.raidFrames = string.lower(rest) ~= "off"
 		Print(SquidBotsLiteDB.raidFrames and L.RAIDFRAMES_ON or L.RAIDFRAMES_OFF)

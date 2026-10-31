@@ -28,7 +28,7 @@ Follow, Stay, Attack, Passive, Dungeon, Regroup, Revive and My alts can each get
 
 ## On your party frames
 
-Each member gets a role icon on its party frame (and on the raid-style frames, `/sbl raidframes off` to stop). The role is the member's party role, which SkyFire-playerbots sets from the bot's specialization when it joins the group. Click the icon for that bot alone: come to me, stay here, attack my target, best gear, learn new spells, sell and repair, make it the leader, remove from group. A tank adds **Mark the pulls with a skull** (`rti skull`); a healer adds **Heal only** (`co +heal,-healer dps`) and **Heal, and deal damage when nobody needs it** (`healer dps`).
+Each member gets a role icon on its party frame (and on the raid-style frames, `/sbl raidframes off` to stop). The role is the member's party role, which SkyFire-playerbots sets from the bot's specialization when it joins the group. Click the icon for that bot alone: come to me, stay here, attack my target, best gear, learn new spells, sell and repair, its quests, make it the leader, remove from group. A tank adds **Mark the pulls with a skull** (`rti skull`); a healer adds **Heal only** (`co +heal,-healer dps`) and **Heal, and deal damage when nobody needs it** (`healer dps`).
 
 A bot with no party role yet is asked `co ?` once to learn it; the question and the answer stay out of your chat. Only members known as bots are asked (your alts, bots listed by `.playerbots list`, members that already answered like a bot), never a real player; `/sbl roles off` turns it off.
 
@@ -36,7 +36,9 @@ SkyFire-playerbots bots answer every `co` / `nc` order with their strategies; th
 
 ## My alts
 
-The **Alts** button (or **Bots > My alts**, or `/sbl alts`) lists your other characters, logged-in ones first, with their level, class and specialization. **Log in** brings one online as a bot (`.playerbots add`) and invites it to your group; **Summon** brings it next to you, since it logs in where it logged out; **Log out** sends it home (`.playerbots remove`). Who is logged in comes from `.playerbots list`.
+The **Alts** button (or **Bots > My alts**, or `/sbl alts`) lists your other characters, logged-in ones first, with their level, class and specialization. **Log in** brings one online as a bot (`.playerbots add`) and invites it to your group; **Summon** brings it next to you, since it logs in where it logged out; **Quests** shows the quests it is on; **Log out** sends it home (`.playerbots remove`). Who is logged in comes from `.playerbots list`.
+
+**Quests** (also in a bot's menu on its party frame, or `/sbl quests <name>`; your target when no name) whispers the bot `quests all` and opens its quest log in a small window: the quests in progress with their objectives (`3/8 Kobold Vermin`), then the ones ready to turn in, and the total. Hover a quest for its tooltip, shift-click to link it in chat. The bot's answer stays out of your chat. Needs SkyFire-playerbots with the `quests all` command.
 
 - The server cannot list an account's characters to a player, so each character notes itself when you play it with the addon on: log in once on each of your characters. Right-click a card to forget a deleted character.
 - `.playerbots add / remove / list` are **GM commands** on SkyFire: My alts needs GM rights on the realm.
@@ -56,6 +58,7 @@ The **Alts** button (or **Bots > My alts**, or `/sbl alts`) lists your other cha
 /sbl scale <0.5-2>   bar size (1 = normal; /sbl scale alone says the current one)
 /sbl lang fr | en    French or English
 /sbl alts            your other characters, played as bots
+/sbl quests [name]   a bot's quest log (your target when no name)
 /sbl roles on | off  ask bots without a party role for it
 /sbl raidframes on | off  role icons on the raid-style frames
 /sbl gm              GM mode
