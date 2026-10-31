@@ -52,7 +52,7 @@ local STRINGS = {
 		TIP_ALT_SUMMON = "Brings it to you: an alt logs in where it logged out.",
 		ALTS_FORGET = "Right click: forget this character.", ALTS_FORGOT = "%s is no longer listed in My alts.",
 		ALTS_QUESTS = "Quests", TIP_ALT_QUESTS = "The quests it is on, with their objectives (quests all).",
-		M_QUESTS = "Its quests", Q_TITLE = "Quests of %s", Q_WAIT = "Asking %s...", Q_NO_REPLY = "No answer from %s.",
+		M_QUESTS = "Its quests", Q_TITLE = "Quests of %s", Q_WAIT = "Asking %s...", Q_NO_REPLY = "No answer from %s.", Q_OTHER = "A quest list came from \"%s\", not from %s: please report this name.",
 		Q_INCOMPLETE = "In progress", Q_COMPLETE = "Ready to turn in", Q_REFRESH = "Ask again",
 		Q_HELP = "Hover a quest for its tooltip, shift-click to link it in chat.",
 		ROLES_ON = "Automatic roles on: a bot without a party role is asked \"co ?\" once, answer hidden.",
@@ -110,7 +110,7 @@ local STRINGS = {
 		TIP_ALT_SUMMON = "L'amène à vous : un alt se connecte là où il s'est déconnecté.",
 		ALTS_FORGET = "Clic droit : oublier ce personnage.", ALTS_FORGOT = "%s n'est plus listé dans Mes alts.",
 		ALTS_QUESTS = "Quêtes", TIP_ALT_QUESTS = "Les quêtes qu'il a en cours, avec leurs objectifs (quests all).",
-		M_QUESTS = "Ses quêtes", Q_TITLE = "Quêtes de %s", Q_WAIT = "Question à %s...", Q_NO_REPLY = "Pas de réponse de %s.",
+		M_QUESTS = "Ses quêtes", Q_TITLE = "Quêtes de %s", Q_WAIT = "Question à %s...", Q_NO_REPLY = "Pas de réponse de %s.", Q_OTHER = "Une liste de quêtes est venue de \"%s\", pas de %s : signalez ce nom.",
 		Q_INCOMPLETE = "En cours", Q_COMPLETE = "À rendre", Q_REFRESH = "Redemander",
 		Q_HELP = "Survolez une quête pour son infobulle, Maj-clic pour la lier dans le chat.",
 		ROLES_ON = "Rôles automatiques activés : un bot sans rôle de groupe reçoit \"co ?\" une fois, réponse masquée.",
@@ -347,6 +347,11 @@ end
 -- to compare with UnitName and the names the addon keeps.
 local function ShortName(name)
 	return name and name:match("^([^%-]+)") or name
+end
+
+-- The same character: no realm part, any case ("/sbl quests fogh" is Fogh's list).
+local function SameName(a, b)
+	return a ~= nil and b ~= nil and string.lower(ShortName(a)) == string.lower(ShortName(b))
 end
 
 local function Whisper(name, message)
@@ -1277,7 +1282,7 @@ local function IsQuestListStart(message)
 end
 
 local function AwaitsQuests(sender)
-	return questAsk.name == sender and not questAsk.done and GetTime() - (questAsk.lastLine or 0) < QUEST_WAIT
+	return SameName(questAsk.name, sender) and not questAsk.done and GetTime() - (questAsk.lastLine or 0) < QUEST_WAIT
 end
 
 local function BuildQuests()
@@ -1357,7 +1362,7 @@ end
 -- A list the player asked for by hand ("quests all" typed in chat, to one bot or the group): shown
 -- in the window too, and left in the chat. One bot at a time: another's list stays in the chat.
 local function CaptureTypedList(sender)
-	if questAsk.name and questAsk.name ~= sender and AwaitsQuests(questAsk.name) then return false end
+	if questAsk.name and not SameName(questAsk.name, sender) and AwaitsQuests(questAsk.name) then return false end
 	questAsk = { name = sender, lastLine = GetTime(), typed = true }
 	OpenQuestWindow(sender)
 	return true
@@ -1391,24 +1396,31 @@ local function TickQuests()
 		questAsk.done = true
 		questFrame.log:Clear()
 		questFrame.log:AddMessage(string.format(L.Q_NO_REPLY, questAsk.name), 1, 0.5, 0.3)
+		-- The answer may have come under a name the addon did not recognise: say which.
+		if questAsk.otherSender then
+			questFrame.log:AddMessage(string.format(L.Q_OTHER, questAsk.otherSender, questAsk.name), 1, 0.5, 0.3)
+		end
 	end
 end
 
 ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", function(_, _, message, sender)
-	if questAsk.name and not questAsk.typed and questAsk.name == ShortName(sender) and IsQuestAnswer(message)
+	if questAsk.name and not questAsk.typed and SameName(questAsk.name, sender) and IsQuestAnswer(message)
 		and GetTime() - (questAsk.lastLine or 0) < QUEST_WAIT + 1 then
 		return true
 	end
 end)
 ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER_INFORM", function(_, _, message, target)
-	if message == "quests all" and not questAsk.typed and questAsk.name == ShortName(target)
+	if message == "quests all" and not questAsk.typed and SameName(questAsk.name, target)
 		and GetTime() - (questAsk.lastLine or 0) < 2 then
 		return true
 	end
 end)
 
-local function OnQuestWhisper(message, sender)
+local function OnQuestWhisper(message, sender, rawSender)
 	if not IsQuestAnswer(message) then return false end
+	if questAsk.name and not questAsk.typed and not SameName(questAsk.name, sender) then
+		questAsk.otherSender = rawSender or sender
+	end
 	if AwaitsQuests(sender) then
 		OnQuestLine(message)
 		return true
@@ -1509,7 +1521,7 @@ events:SetScript("OnEvent", function(self, event, arg1, arg2)
 		end)
 	elseif event == "CHAT_MSG_WHISPER" then
 		local sender = ShortName(arg2)
-		if arg1 and sender and not OnQuestWhisper(arg1, sender) and IsStrategyAnswer(arg1) then
+		if arg1 and sender and not OnQuestWhisper(arg1, sender, arg2) and IsStrategyAnswer(arg1) then
 			OnStrategies(arg1, sender)
 		end
 	elseif event == "CHAT_MSG_SYSTEM" then

@@ -2,7 +2,7 @@
 ## Title: SquidBots Lite
 ## Notes: A thin bar of bot orders and role badges on the party frames - SkyFire-playerbots (5.4.8)
 ## Notes-frFR: Une barre fine d'ordres aux bots et rôles sur les cadres de groupe - SkyFire-playerbots (5.4.8)
-## Version: 3.1.2
+## Version: 3.1.3
 ## Author: CoA Bots team, SkyFire port by Brytenwally
 ## X-License: GPL-2.0
 ## X-Website: https://github.com/Brytenwally/squidbots-addon
