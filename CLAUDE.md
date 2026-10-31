@@ -38,6 +38,10 @@ version"). `Brytenwally/mod-playerbots` is a 3.3.5 reference only.
   link, then ` - 3/8 objective, ...`), `--- Completed quests ---`, ...,
   `--- Summary ---`, `Total: n / 25 (...)` (the end marker). The Quests panel
   hides and shows those lines (`IsQuestAnswer`, `OnQuestLine`).
+- My alts' logged-in state: `.playerbots list`, the add/remove answers
+  (`'X' is not an active bot.`, `Could not add bot 'X': That character is
+  already an active bot.` correct a stale state), or a group member that is
+  **connected** (a party survives a server restart with offline bots in it).
 - The server cannot list an account's characters: each character records itself
   in `SquidBotsLiteDB.altInfo` at login, and My alts lists those.
 

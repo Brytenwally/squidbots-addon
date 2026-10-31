@@ -864,7 +864,10 @@ end
 local function BuildRoster()
 	local list, me = {}, UnitName("player")
 	for name in pairs(SquidBotsLiteDB.altInfo or {}) do
-		if name ~= me then table.insert(list, { name = name, online = onlineBots[name] or UnitOf(name) ~= nil }) end
+		-- A party survives a server restart: a bot that is still in the group but disconnected is offline.
+		local unit = UnitOf(name)
+		local online = onlineBots[name] or (unit ~= nil and UnitIsConnected(unit) and true) or false
+		if name ~= me then table.insert(list, { name = name, online = online }) end
 	end
 	table.sort(list, function(a, b)
 		if a.online ~= b.online then return a.online end
@@ -1201,6 +1204,13 @@ end
 -- The server's answers to ".playerbots list / add / remove". Only a list the panel asked for is kept out of
 -- the chat; one typed by hand shows.
 local function OnSystem(message)
+	local already = message:match("^Could not add bot '(.-)': That character is already an active bot%.$")
+		or message:match("^Could not add bot '(.-)': That character is already logging in%.$")
+	if already then
+		onlineBots[already] = true
+		RefreshAlts()
+		return
+	end
 	local added = message:match("^Bot '(.-)' logged in%.$")
 	if added then
 		onlineBots[added] = true
@@ -1208,7 +1218,8 @@ local function OnSystem(message)
 		RefreshAlts()
 		return
 	end
-	local removed = message:match("^Bot '(.-)' logged out%.$")
+	-- A stale button corrects itself: the server says what the bot really is.
+	local removed = message:match("^Bot '(.-)' logged out%.$") or message:match("^'(.-)' is not an active bot%.$")
 	if removed then
 		onlineBots[removed] = nil
 		knownBot[removed] = nil
@@ -1437,7 +1448,7 @@ events:SetScript("OnEvent", function(self, event, arg1, arg2)
 		BuildAlts()
 		BuildQuests()
 		RefreshTexts()
-		for _, e in ipairs({ "CHAT_MSG_WHISPER", "CHAT_MSG_SYSTEM", "GROUP_ROSTER_UPDATE", "PLAYER_LEVEL_UP",
+		for _, e in ipairs({ "CHAT_MSG_WHISPER", "CHAT_MSG_SYSTEM", "GROUP_ROSTER_UPDATE", "UNIT_CONNECTION", "PLAYER_LEVEL_UP",
 			"PLAYER_SPECIALIZATION_CHANGED" }) do
 			self:RegisterEvent(e)
 		end
@@ -1461,7 +1472,7 @@ events:SetScript("OnEvent", function(self, event, arg1, arg2)
 		end
 	elseif event == "CHAT_MSG_SYSTEM" then
 		if arg1 then OnSystem(arg1) end
-	elseif event == "GROUP_ROSTER_UPDATE" then
+	elseif event == "GROUP_ROSTER_UPDATE" or event == "UNIT_CONNECTION" then
 		if altsFrame:IsShown() then RefreshAlts() end
 	elseif event == "PLAYER_LEVEL_UP" or event == "PLAYER_SPECIALIZATION_CHANGED" then
 		if event == "PLAYER_LEVEL_UP" or arg1 == "player" then NoteSelf() end
