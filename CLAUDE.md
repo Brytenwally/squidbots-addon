@@ -47,8 +47,11 @@ version"). `Brytenwally/mod-playerbots` is a 3.3.5 reference only.
   (`'X' is not an active bot.`, `Could not add bot 'X': That character is
   already an active bot.` correct a stale state), or a group member that is
   **connected** (a party survives a server restart with offline bots in it).
-- The server cannot list an account's characters: each character records itself
-  in `SquidBotsLiteDB.altInfo` at login, and My alts lists those.
+- My alts' roster: `.playerbots alts` (GM) answers `Account characters: N`, then
+  `  Name (level L, class C, online|offline)` (C = class id, `CLASS_TOKENS`).
+  `FinishAlts` replaces `SquidBotsLiteDB.altInfo` with it (deleted characters
+  forgotten) only when all N lines came; a cut-short answer only updates.
+  `NoteSelf` still adds the spec of the character played.
 
 ## Checking
 
