@@ -36,12 +36,12 @@ SkyFire-playerbots bots answer every `co` / `nc` order with their strategies; th
 
 ## My alts
 
-The **Alts** button (or **Bots > My alts**, or `/sbl alts`) lists your other characters, logged-in ones first, with their level, class and specialization. **Log in** brings one online as a bot (`.playerbots add`) and invites it to your group; **Summon** brings it next to you, since it logs in where it logged out; **Quests** shows the quests it is on; **Log out** sends it home (`.playerbots remove`). Your characters and who is logged in come from `.playerbots alts`.
+The **Alts** button (or **Bots > My alts**, or `/sbl alts`) lists your other characters, logged-in ones first, with their level, class and specialization. **Log in** brings one online as a bot (`.playerbots add`) and invites it to your group; **Summon** brings it next to you, since it logs in where it logged out; **Quests** shows the quests it is on; **Log out** sends it home (`.playerbots remove`). Who is logged in comes from `.playerbots list`.
 
 **Quests** (also in a bot's menu on its party frame, or `/sbl quests <name>`; your target when no name) whispers the bot `quests all` and opens its quest log in a small window: the quests in progress with their objectives (`3/8 Kobold Vermin`), then the ones ready to turn in, and the total. Hover a quest for its tooltip, shift-click to link it in chat. The bot's answer stays out of your chat. A `quests all` (or `quests incompleted` / `completed` / `summary`) you type yourself, to one bot or the group, opens in the window too and stays in the chat. Needs SkyFire-playerbots with the `quests all` command.
 
-- The list comes from the server (`.playerbots alts`, your own account's characters): characters you delete drop off it, new ones show up with their level and class, and it says which are logged in. Right-click a card to forget a character by hand.
-- `.playerbots alts / add / remove` are **GM commands** on SkyFire: My alts needs GM rights on the realm, and a SkyFire-playerbots that has `.playerbots alts`.
+- The server cannot list an account's characters to a player, so each character notes itself when you play it with the addon on: log in once on each of your characters. Right-click a card to forget a deleted character.
+- `.playerbots add / remove / list` are **GM commands** on SkyFire: My alts needs GM rights on the realm.
 - **Teams**: save your group, or the logged-in alts, under a name, then log the whole team in or out in one click (one a second; a sixth member turns your party into a raid).
 
 ![My alts](images/my-alts.png)

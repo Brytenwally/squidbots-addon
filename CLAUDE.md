@@ -23,6 +23,11 @@ version"). `Brytenwally/mod-playerbots` is a 3.3.5 reference only.
   `PlayerbotScripts.cpp` (`.playerbots add|remove|list|init|...`, all GM-only).
   When the server gains a command, a removed feature can come back.
 
+- **Owner's rule: the addon must not change the server.** Only use commands
+  SkyFire-playerbots already has for the bots; never add server commands just
+  for the addon (a `.playerbots alts` for My alts was added and reverted).
+  Deleted characters are forgotten by hand (right-click a card in My alts).
+
 ## Server behaviour the addon relies on
 
 - Bots whisper `co: +a, -b, ...` / `nc: ...` back after **every** co/nc order,
@@ -47,11 +52,8 @@ version"). `Brytenwally/mod-playerbots` is a 3.3.5 reference only.
   (`'X' is not an active bot.`, `Could not add bot 'X': That character is
   already an active bot.` correct a stale state), or a group member that is
   **connected** (a party survives a server restart with offline bots in it).
-- My alts' roster: `.playerbots alts` (GM) answers `Account characters: N`, then
-  `  Name (level L, class C, online|offline)` (C = class id, `CLASS_TOKENS`).
-  `FinishAlts` replaces `SquidBotsLiteDB.altInfo` with it (deleted characters
-  forgotten) only when all N lines came; a cut-short answer only updates.
-  `NoteSelf` still adds the spec of the character played.
+- The server cannot list an account's characters: each character records itself
+  in `SquidBotsLiteDB.altInfo` at login, and My alts lists those.
 
 ## Checking
 

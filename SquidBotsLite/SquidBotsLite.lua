@@ -44,8 +44,8 @@ local STRINGS = {
 		T_SAVED = "Team %s saved: %d characters.", T_STARTED = "Team %s: logging in %d characters, one a second.",
 		T_EMPTY = "Nobody to save: invite or log in your alts first.",
 		ALTS_WAIT = "Asking the server...",
-		ALTS_EMPTY = "No other character on this account.",
-		ALTS_NO_REPLY = "No answer from the server: .playerbots alts needs GM rights (and a SkyFire-playerbots that has it).",
+		ALTS_EMPTY = "No other character known yet: log in once on each of your characters with the addon on.",
+		ALTS_NO_REPLY = "No answer from the server: .playerbots list needs GM rights.",
 		ALTS_HELP = "Log in uses .playerbots add (GM). A logged-in alt is invited to your group.",
 		ALTS_COUNT = "%d / %d logged in", TIP_ALTS_REFRESH = "Ask the server which bots are logged in.",
 		TIP_ALT_ADD = "Logs it in as a bot and invites it to your group.", TIP_ALT_REMOVE = "Logs it out of the game.",
@@ -102,8 +102,8 @@ local STRINGS = {
 		T_SAVED = "Équipe %s enregistrée : %d personnages.", T_STARTED = "Équipe %s : connexion de %d personnages, un par seconde.",
 		T_EMPTY = "Personne à enregistrer : invitez ou connectez d'abord vos alts.",
 		ALTS_WAIT = "Question au serveur...",
-		ALTS_EMPTY = "Aucun autre personnage sur ce compte.",
-		ALTS_NO_REPLY = "Pas de réponse du serveur : .playerbots alts demande les droits MJ (et un SkyFire-playerbots qui l'a).",
+		ALTS_EMPTY = "Aucun autre personnage connu : connectez-vous une fois sur chacun de vos personnages avec l'addon activé.",
+		ALTS_NO_REPLY = "Pas de réponse du serveur : .playerbots list demande les droits MJ.",
 		ALTS_HELP = "Connecter utilise .playerbots add (MJ). Un alt connecté est invité dans votre groupe.",
 		ALTS_COUNT = "%d / %d connectés", TIP_ALTS_REFRESH = "Demander au serveur quels bots sont connectés.",
 		TIP_ALT_ADD = "Le connecte en bot et l'invite dans votre groupe.", TIP_ALT_REMOVE = "Le déconnecte du jeu.",
@@ -847,11 +847,6 @@ local ROSTER_WAIT, AFTER_TOGGLE, INVITE_DELAY = 5, 3, 1.5   -- seconds
 local altsFrame, altRows, roster = nil, {}, {}
 local onlineBots = {}
 local rosterAskedAt, refreshAt, readingList, hideListUntil
--- ".playerbots alts" being read: { untilTime, expected, found = { [name] = { level, class, online } } }.
-local readingAlts
--- Class ids as the server gives them, to the client's class tokens.
-local CLASS_TOKENS = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "DEATHKNIGHT", "SHAMAN", "MAGE",
-	"WARLOCK", "MONK", "DRUID" }
 local pendingInvites = {}
 
 local function NoteSelf()
@@ -892,12 +887,10 @@ local function BuildRoster()
 	return list
 end
 
--- The server lists the account's characters (".playerbots alts"): deleted ones drop off the panel,
--- new ones show up, and it says which are logged in.
 local function AskRoster()
 	rosterAskedAt, refreshAt = GetTime(), nil
 	altsFrame.status:SetText(L.ALTS_WAIT)
-	GmCommand("alts")
+	GmCommand("list")
 end
 
 local function AltLine(name)
@@ -1203,37 +1196,9 @@ ShowAlts = function()
 end
 
 -- Called with the other refreshes: a new list after a log in / out, a word if the server stays silent.
--- The answer is complete when all N lines came; only then are characters missing from it forgotten
--- (deleted). A cut-short answer only updates the ones it named.
-local function FinishAlts(complete)
-	local reading = readingAlts
-	readingAlts = nil
-	if not reading then return end
-	local me = UnitName("player")
-	SquidBotsLiteDB.altInfo = SquidBotsLiteDB.altInfo or {}
-	if complete then
-		for name in pairs(SquidBotsLiteDB.altInfo) do
-			if not reading.found[name] then SquidBotsLiteDB.altInfo[name] = nil end
-		end
-	end
-	for name, alt in pairs(reading.found) do
-		local info = SquidBotsLiteDB.altInfo[name] or {}
-		local token = CLASS_TOKENS[alt.class]
-		info.level, info.token = alt.level, token or info.token
-		info.class = (token and LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[token]) or info.class
-		SquidBotsLiteDB.altInfo[name] = info
-		if name ~= me then
-			onlineBots[name] = alt.online or nil
-			if alt.online then knownBot[name] = true end
-		end
-	end
-	RefreshAlts()
-end
-
 local function TickAlts()
 	TickLogins()
 	local now = GetTime()
-	if readingAlts and now > readingAlts.untilTime then FinishAlts(false) end
 	if readingList and now > readingList then
 		readingList = nil
 		RefreshAlts()
@@ -1272,25 +1237,6 @@ local function OnSystem(message)
 		RefreshAlts()
 		return
 	end
-	local count = tonumber(message:match("^Account characters: (%d+)$"))
-	if count then
-		readingAlts = { untilTime = GetTime() + 2, expected = count, found = {}, seen = 0 }
-		if rosterAskedAt then
-			rosterAskedAt, hideListUntil = nil, GetTime() + 2
-			if altsFrame then altsFrame.status:SetText("") end
-		end
-		if count == 0 then FinishAlts(true) end
-		return
-	end
-	if readingAlts then
-		local alt, level, class, presence = message:match("^%s*(%S+) %(level (%d+), class (%d+), (%a+)%)$")
-		if alt then
-			readingAlts.found[alt] = { level = tonumber(level), class = tonumber(class), online = presence == "online" }
-			readingAlts.seen = readingAlts.seen + 1
-			if readingAlts.seen >= readingAlts.expected then FinishAlts(true) end
-			return
-		end
-	end
 	if message:find("^Active bots: %d+$") then
 		-- "Active bots: N", then "  Name (GUID n)" lines, one per bot.
 		onlineBots, readingList = {}, GetTime() + 1
@@ -1309,8 +1255,7 @@ end
 
 ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(_, _, message)
 	if hideListUntil and GetTime() < hideListUntil
-		and (message:find("^Active bots: %d+$") or message:find("^%s*.- %(GUID %d+%)$")
-			or message:find("^Account characters: %d+$") or message:find("^%s*%S+ %(level %d+, class %d+, %a+%)$")) then
+		and (message:find("^Active bots: %d+$") or message:find("^%s*.- %(GUID %d+%)$")) then
 		return true
 	end
 end)
